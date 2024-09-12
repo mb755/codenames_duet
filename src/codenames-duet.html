@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codenames Duet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #gameBoard {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .word {
+            width: 100px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+            overflow: hidden;
+            border-width: 3px;
+            border-style: solid;
+        }
+
+        .word.green {
+            background-color: #90EE90;
+        }
+
+        .word.yellow {
+            background-color: #FFFF00;
+        }
+
+        .word.black {
+            background-color: #000;
+            color: white;
+        }
+
+        #controls,
+        #counters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #boardId {
+            margin-top: 10px;
+        }
+
+        .counter {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .counter button {
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Codenames Duet</h1>
+    <div id="controls">
+        <button id="generateBoard">Generate Board</button>
+        <input type="text" id="loadBoardInput" placeholder="Enter Board ID">
+        <button id="loadBoard">Load Board</button>
+    </div>
+    <div id="counters">
+        <div class="counter">
+            <span>Correct Words:</span>
+            <span id="correctWords">0</span>
+        </div>
+        <div class="counter">
+            <span>Clues:</span>
+            <button id="decreaseClues">-</button>
+            <span id="cluesCounter">0</span>
+            <button id="increaseClues">+</button>
+        </div>
+    </div>
+    <div id="boardId"></div>
+    <div id="gameBoard"></div>
+
+    <script>
+        const words = ['AFRICA', 'AGENT', 'AIR', 'ALIEN', 'ALPS', 'AMAZON', 'AMBULANCE', 'AMERICA', 'ANGEL', 'ANTARCTICA', 'APPLE', 'ARM', 'ATLANTIS', 'AUSTRALIA', 'AZTEC', 'BACK', 'BALL', 'BAND', 'BANK', 'BAR', 'BARK', 'BAT', 'BATTERY', 'BEACH', 'BEAR', 'BEAT', 'BED', 'BEIJING', 'BELL', 'BELT', 'BERLIN', 'BERMUDA', 'BERRY', 'BILL', 'BLOCK', 'BOARD', 'BOLT', 'BOMB', 'BOND', 'BOOM', 'BOOT', 'BOTTLE', 'BOW', 'BOX', 'BRIDGE', 'BRUSH', 'BUCK', 'BUFFALO', 'BUG', 'BUGLE', 'BUTTON', 'CALF', 'CANADA', 'CAP', 'CAPITAL', 'CAR', 'CARD', 'CARROT', 'CASINO', 'CAST', 'CAT', 'CELL', 'CENTAUR', 'CENTER', 'CHAIR', 'CHANGE', 'CHARGE', 'CHECK', 'CHEST', 'CHICK', 'CHINA', 'CHOCOLATE', 'CHURCH', 'CIRCLE', 'CLIFF', 'CLOAK', 'CLUB', 'CODE', 'COLD', 'COMIC', 'COMPOUND', 'CONCERT', 'CONDUCTOR', 'CONTRACT', 'COOK', 'COPPER', 'COTTON', 'COURT', 'COVER', 'CRANE', 'CRASH', 'CRICKET', 'CROSS', 'CROWN', 'CYCLE', 'CZECH', 'DANCE', 'DATE', 'DAY', 'DEATH', 'DECK', 'DEGREE', 'DIAMOND', 'DICE', 'DINOSAUR', 'DISEASE', 'DOCTOR', 'DOG', 'DRAFT', 'DRAGON', 'DRESS', 'DRILL', 'DROP', 'DUCK', 'DWARF', 'EAGLE', 'EGYPT', 'EMBASSY', 'ENGINE', 'ENGLAND', 'EUROPE', 'EYE', 'FACE', 'FAIR', 'FALL', 'FAN', 'FENCE', 'FIELD', 'FIGHTER', 'FIGURE', 'FILE', 'FILM', 'FIRE', 'FISH', 'FLUTE', 'FLY', 'FOOT', 'FORCE', 'FOREST', 'FORK', 'FRANCE', 'GAME', 'GAS', 'GENIUS', 'GERMANY', 'GHOST', 'GIANT', 'GLASS', 'GLOVE', 'GOLD', 'GRACE', 'GRASS', 'GREECE', 'GREEN', 'GROUND', 'HAM', 'HAND', 'HAWK', 'HEAD', 'HEART', 'HELICOPTER', 'HIMALAYAS', 'HOLE', 'HOLLYWOOD', 'HONEY', 'HOOD', 'HOOK', 'HORN', 'HORSE', 'HORSESHOE', 'HOSPITAL', 'HOTEL', 'ICE', 'ICE CREAM', 'INDIA', 'IRON', 'IVORY', 'JACK', 'JAM', 'JET', 'JUPITER', 'KANGAROO', 'KETCHUP', 'KEY', 'KID', 'KING', 'KIWI', 'KNIFE', 'KNIGHT', 'LAB', 'LAP', 'LASER', 'LAWYER', 'LEAD', 'LEMON', 'LEPRECHAUN', 'LIFE', 'LIGHT', 'LIMOUSINE', 'LINE', 'LINK', 'LION', 'LITTER', 'LOCH NESS', 'LOCK', 'LOG', 'LONDON', 'LUCK', 'MAIL', 'MAMMOTH', 'MAPLE', 'MARBLE', 'MARCH', 'MASS', 'MATCH', 'MERCURY', 'MEXICO', 'MICROSCOPE', 'MILLIONAIRE', 'MINE', 'MINT', 'MISSILE', 'MODEL', 'MOLE', 'MOON', 'MOSCOW', 'MOUNT', 'MOUSE', 'MOUTH', 'MUG', 'NAIL', 'NEEDLE', 'NET', 'NEW YORK', 'NIGHT', 'NINJA', 'NOTE', 'NOVEL', 'NURSE', 'NUT', 'OCTOPUS', 'OIL', 'OLIVE', 'OLYMPUS', 'OPERA', 'ORANGE', 'ORGAN', 'PALM', 'PAN', 'PANTS', 'PAPER', 'PARACHUTE', 'PARK', 'PART', 'PASS', 'PASTE', 'PENGUIN', 'PHOENIX', 'PIANO', 'PIE', 'PILOT', 'PIN', 'PIPE', 'PIRATE', 'PISTOL', 'PIT', 'PITCH', 'PLANE', 'PLASTIC', 'PLATE', 'PLATYPUS', 'PLAY', 'PLOT', 'POINT', 'POISON', 'POLE', 'POLICE', 'POOL', 'PORT', 'POST', 'POUND', 'PRESS', 'PRINCESS', 'PUMPKIN', 'PUPIL', 'PYRAMID', 'QUEEN', 'RABBIT', 'RACKET', 'RAY', 'REVOLUTION', 'RING', 'ROBIN', 'ROBOT', 'ROCK', 'ROME', 'ROOT', 'ROSE', 'ROULETTE', 'ROUND', 'ROW', 'RULER', 'SATELLITE', 'SATURN', 'SCALE', 'SCHOOL', 'SCIENTIST', 'SCORPION', 'SCREEN', 'SCUBA DIVER', 'SEAL', 'SERVER', 'SHADOW', 'SHAKESPEARE', 'SHARK', 'SHIP', 'SHOE', 'SHOP', 'SHOT', 'SINK', 'SKYSCRAPER', 'SLIP', 'SLUG', 'SMUGGLER', 'SNOW', 'SNOWMAN', 'SOCK', 'SOLDIER', 'SOUL', 'SOUND', 'SPACE', 'SPELL', 'SPIDER', 'SPIKE', 'SPINE', 'SPOT', 'SPRING', 'SPY', 'SQUARE', 'STADIUM', 'STAFF', 'STAR', 'STATE', 'STICK', 'STOCK', 'STRAW', 'STREAM', 'STRIKE', 'STRING', 'SUB', 'SUIT', 'SUPERHERO', 'SWING', 'SWITCH', 'TABLE', 'TABLET', 'TAG', 'TAIL', 'TAP', 'TEACHER', 'TELESCOPE', 'TEMPLE', 'THEATER', 'THIEF', 'THUMB', 'TICK', 'TIE', 'TIME', 'TOKYO', 'TOOTH', 'TORCH', 'TOWER', 'TRACK', 'TRAIN', 'TRIANGLE', 'TRIP', 'TRUNK', 'TUBE', 'TURKEY', 'UNDERTAKER', 'UNICORN', 'VACUUM', 'VAN', 'VET', 'WAKE', 'WALL', 'WAR', 'WASHER', 'WASHINGTON', 'WATCH', 'WATER', 'WAVE', 'WEB', 'WELL', 'WHALE', 'WHIP', 'WIND', 'WITCH', 'WORM', 'YARD'];
+        let currentBoardId = '';
+        let correctWordsCount = 0;
+        let cluesCount = 0;
+
+        function xmur3(str) {
+            for (var i = 0, h = 1779033703 ^ str.length; i < str.length; i++)
+                h = Math.imul(h ^ str.charCodeAt(i), 3432918353),
+                    h = h << 13 | h >>> 19;
+            return function () {
+                h = Math.imul(h ^ h >>> 16, 2246822507);
+                h = Math.imul(h ^ h >>> 13, 3266489909);
+                return (h ^= h >>> 16) >>> 0;
+            }
+        }
+
+        function mulberry32(a) {
+            return function () {
+                var t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+        }
+
+        function generateBoardId() {
+            const characters = 'abcdefghijklmnopqrstuvwxyz';
+            let result = '';
+            for (let i = 0; i < 4; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return result;
+        }
+
+        function shuffleArray(array, rng) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(rng() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function adjustFontSize(element) {
+            const maxWidth = element.offsetWidth - 10;
+            const maxHeight = element.offsetHeight - 10;
+            let fontSize = 16;
+            element.style.fontSize = fontSize + 'px';
+
+            while ((element.scrollWidth > maxWidth || element.scrollHeight > maxHeight) && fontSize > 8) {
+                fontSize--;
+                element.style.fontSize = fontSize + 'px';
+            }
+        }
+
+        function generateKeyStates() {
+            const keyStates = ['green', 'green', 'green', 'green', 'green', 'green', 'green', 'green', 'green', 'black', 'black', 'black', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow', 'yellow'];
+            shuffleArray(keyStates, Math.random);
+            return keyStates;
+        }
+
+        function generateBoard() {
+            currentBoardId = generateBoardId();
+            const seed = xmur3(currentBoardId);
+            const rng = mulberry32(seed());
+
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            const keyStates = generateKeyStates();
+
+            const selectedWords = [];
+            while (selectedWords.length < 25) {
+                const index = Math.floor(rng() * words.length);
+                if (!selectedWords.includes(words[index])) {
+                    selectedWords.push(words[index]);
+                }
+            }
+
+            for (let i = 0; i < 25; i++) {
+                const wordElement = document.createElement('div');
+                wordElement.classList.add('word');
+                wordElement.textContent = selectedWords[i];
+                wordElement.style.borderColor = keyStates[i];
+                wordElement.addEventListener('click', cycleWordState);
+                gameBoard.appendChild(wordElement);
+                adjustFontSize(wordElement);
+            }
+
+            document.getElementById('boardId').textContent = `Board ID: ${currentBoardId}`;
+            resetCounters();
+        }
+
+        function loadBoard() {
+            const boardId = document.getElementById('loadBoardInput').value.toLowerCase();
+            if (boardId && boardId.length === 4 && /^[a-z]+$/.test(boardId)) {
+                currentBoardId = boardId;
+                const seed = xmur3(currentBoardId);
+                const rng = mulberry32(seed());
+
+                const gameBoard = document.getElementById('gameBoard');
+                gameBoard.innerHTML = '';
+                const keyStates = generateKeyStates();
+
+                const selectedWords = [];
+                while (selectedWords.length < 25) {
+                    const index = Math.floor(rng() * words.length);
+                    if (!selectedWords.includes(words[index])) {
+                        selectedWords.push(words[index]);
+                    }
+                }
+
+                for (let i = 0; i < 25; i++) {
+                    const wordElement = document.createElement('div');
+                    wordElement.classList.add('word');
+                    wordElement.textContent = selectedWords[i];
+                    wordElement.style.borderColor = keyStates[i];
+                    wordElement.addEventListener('click', cycleWordState);
+                    gameBoard.appendChild(wordElement);
+                    adjustFontSize(wordElement);
+                }
+
+                document.getElementById('boardId').textContent = `Board ID: ${currentBoardId}`;
+                resetCounters();
+            } else {
+                alert('Invalid Board ID. Please enter 4 lowercase letters.');
+            }
+        }
+
+        function cycleWordState() {
+            const states = ['none', 'green', 'yellow', 'black'];
+            let currentState = 'none';
+
+            for (let state of states.slice(1)) {
+                if (this.classList.contains(state)) {
+                    currentState = state;
+                    break;
+                }
+            }
+
+            const currentIndex = states.indexOf(currentState);
+            const nextIndex = (currentIndex + 1) % states.length;
+            const nextState = states[nextIndex];
+
+            this.classList.remove('green', 'yellow', 'black');
+
+            if (nextState !== 'none') {
+                this.classList.add(nextState);
+            }
+
+            updateCorrectWordsCount();
+        }
+
+        function updateCorrectWordsCount() {
+            correctWordsCount = document.querySelectorAll('.word.green').length;
+            document.getElementById('correctWords').textContent = correctWordsCount;
+        }
+
+        function resetCounters() {
+            correctWordsCount = 0;
+            cluesCount = 0;
+            document.getElementById('correctWords').textContent = correctWordsCount;
+            document.getElementById('cluesCounter').textContent = cluesCount;
+        }
+
+        document.getElementById('generateBoard').addEventListener('click', generateBoard);
+        document.getElementById('loadBoard').addEventListener('click', loadBoard);
+        document.getElementById('decreaseClues').addEventListener('click', () => {
+            if (cluesCount > 0) {
+                cluesCount--;
+                document.getElementById('cluesCounter').textContent = cluesCount;
+            }
+        });
+        document.getElementById('increaseClues').addEventListener('click', () => {
+            cluesCount++;
+            document.getElementById('cluesCounter').textContent = cluesCount;
+        });
+
+        generateBoard();
+    </script>
+</body>
+
+</html>
